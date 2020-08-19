@@ -67,7 +67,7 @@ class Busan():
 
     def Nam_gu(self):
 
-        response = requests.get('https://www.bsnamgu.go.kr/index.namgu', verify=False)
+        response = requests.get('https://www.bsnamgu.go.kr/index.namgu?menuCd=DOM_000000115000000000', verify=False)
         soup = BeautifulSoup(response.content, 'html.parser')
         for anchor in soup.select('div.corona'):
             confirmed = int(anchor.get_text().split('\n')[5].split('명')[0])
@@ -78,7 +78,7 @@ class Busan():
      
     def Seo_gu(self):
 
-        with urlopen('http://www.bsseogu.go.kr/index.bsseogu?contentsSid=2560') as response:
+        with urlopen('https://www.bsseogu.go.kr/index.bsseogu') as response:
             soup = BeautifulSoup(response, 'html.parser')
             for anchor in soup.select('div.cov_con'):
                 for anchor1 in anchor.select('td.red'):
