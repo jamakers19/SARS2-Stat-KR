@@ -2,28 +2,28 @@ from util.table import table
 from util.region import *
 from util.Daegu import Daegu
 from util.Seoul import Seoul
-#from util.Gangwon import Gangwon
+from util.Gangwon import Gangwon
 from util.KST import kst_time
 from util.collector import collector
 
 regions = [Seoul().collect, 
                Daegu().collect,    
-               Busan,   
-               Daejeon,
-               Gwangju,
-               Ulsan,
-               Incheon,
-               Sejong,
-               Gyeongbuk,
-               Gyeongnam,
-               Gyeonggi, 
-               Chungbuk,
-               Chungnam,
-               Gangwon,
-               Jeonbuk,
-               Jeonnam,
-               Jeju,
-               Foreign,
+               Busan().collect,   
+               Daejeon().collect,
+               Gwangju.().collect,
+               Ulsan().collect,
+               Incheon().collect,
+               Sejong().collect,
+               Gyeongbuk().collect,
+               Gyeongnam().collect,
+               Gyeonggi().collect, 
+               Chungbuk().collect,
+               Chungnam().collect,
+               Gangwon().collect,
+               Jeonbuk().collect,
+               Jeonnam().collect,
+               Jeju().collect,
+               Foreign().collect,
         ]
 
 if __name__=="__main__":
