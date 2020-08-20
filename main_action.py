@@ -11,7 +11,7 @@ from util.collector import collector
 count_try = 0
 regions = [Seoul().collect, 
                Daegu().collect,    
-               busan,   
+               Busan,   
                #daejeon,
                Daejeon().collect,
                gwangju,
