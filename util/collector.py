@@ -9,11 +9,11 @@ def collector(region_list):
             data_list.insert(i, now())
         except:
             try:
-                print(u"Error occured. Retry : %s"%(now.__name__))
+                print(u"Error occured. Retry : %s"%(now.__module__))
                 data_list.insert(i, now())
             except:
                 error_idx.append(i)
-                print(u"Error occured at : %s"%(now.__name__))
+                print(u"Error occured at : %s"%(now.__module__))
 
     for i in error_idx:
         data_list.insert(i, region_list[i]())

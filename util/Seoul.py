@@ -41,11 +41,11 @@ class Seoul():
         data = BeautifulSoup(res.content, 'html.parser')
         table = data.find_all('script')
         
-        confirmed = int(table[4].text.split('"counter8", ')[1].split(')')[0].replace(',',''))
-        self.db['확진자'] += confirmed
-        #self.db['확진자'] += int(table[0].text.replace(",","")) # 강남 확진자
+        #confirmed = int(table[4].text.split('"counter8", ')[1].split(')')[0].replace(',',''))
+        #self.db['확진자'] += confirmed
+        self.db['확진자'] += int(soup.find('li', 'span').find('counter8').text.replace(",","")) # 강남 확진자
         # 자가격리  |  능동감시
-        #self.db['자가격리자'] += int(table[1].text.replace(",","")) # 강남 자가격리자
+        self.db['자가격리자'] += int(soup.find('li', 'span').find('counter9').text.replace(",","")) # 강남 자가격리자
         #self.db['감시중'] += int(table[2].text.replace(",","")) # 강남 능동감시자
         
         print(u"# 강남구 : %d"%(confirmed))

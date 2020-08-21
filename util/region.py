@@ -3,28 +3,28 @@ from bs4 import BeautifulSoup
 from util.form import form
 #from selenium import webdriver
 import platform, json, re
+import urllib3
+
+urllib3.disable_warnings()
 
 dir_name = "util"
 user_agent = 'Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; rv:11.0) like Gecko'
 headers = {'User-Agent': user_agent}
 
+
+
 def seoul():
     res = requests.get('http://www.seoul.go.kr/coronaV/coronaStatus.do')
     soup = BeautifulSoup(res.content, 'html.parser')
     
-    li_num = soup.find_all('p', class_='counter')
-    li_txt = soup.find_all('p', class_='txt')
-    
-    li_txt = [txt.text for txt in li_txt]
-    li_num = [num.text for num in li_num]
-    
+    table = soup.find_all('p', class_='counter')
     stat = copy.copy(form)
-    for i in range(0, len(li_txt)-4):
-        stat[li_txt[i]] = li_num[i]
     
     stat['지역'] = '서울'
-    stat['퇴원'] = format(25, ',')
-    stat['격리자'] = format(int(stat['확진자'].replace(",", "")) - int(stat['퇴원'].replace(",", "")), ",")
+    stat['확진자'] = table[2]
+    stat['퇴원'] = table[5]
+    stat['격리자'] = table[3]
+    stat['사망'] = table[6]
     
     
     print("pass : ", stat['지역'])
@@ -33,21 +33,22 @@ def seoul():
 
 def daegu():
     # 1. reqeusts 라이브러리를 활용한 HTML 페이지 요청 
-    res = requests.get('http://www.daegu.go.kr/')
- 
+    res = requests.get('http://covid19.daegu.go.kr/')
+    
     # 2) HTML 페이지 파싱 BeautifulSoup(HTML데이터, 파싱방법)
     soup = BeautifulSoup(res.content, 'html.parser')
  
     # 3) 필요한 데이터 검색
-    li = soup.find('div', class_='con_r').find_all('li')
- 
+    table = soup.find_all('strong')
+    
     stat = copy.copy(form)
     
     stat['지역'] = '대구'
     
-    stat['확진자'] = li[0].text.split(' ')[1]
-    stat['격리자'] = li[1].text.split(' ')[1]
-    stat['사망'] = li[2].text.split(' ')[1]
+    stat['확진자'] = table[0].text
+    stat['격리자'] = table[2].text
+    stat['퇴원'] = table[1].text
+    stat['사망'] = table[3].text
     
     print("pass : ", stat['지역'])
     
@@ -248,21 +249,21 @@ def gwangju():
     res = requests.get('https://www.gwangju.go.kr/c19/')#, headers=headers)
     soup = BeautifulSoup(res.content, 'html.parser')
     # 확진자  |  능동감시자
-    temp = soup.find('div', 'person_box')
-    table = re.findall(u"<span>(.*?)</span>명",str(temp))
+    table = soup.find('div', 'person_box').find_all('span')
     
 
     stat = copy.copy(form)
     stat['지역'] = '광주'
     stat['확진자'] = table[0]
-    stat['퇴원'] = table[4]
-    stat['격리자'] = format(int(stat['확진자'].replace(',', '')) - int(stat['퇴원'].replace(',', '')), ',')
+    stat['퇴원'] = table[2]
+    stat['사망'] = table[3]
+    stat['격리자'] = table[1]#format(int(stat['확진자'].replace(',', '')) - int(stat['퇴원'].replace(',', '')), ',')
     stat['검사중'] = table[8]
     stat['결과음성'] = table[7]
     stat['의심환자'] = table[5] # format(int(stat['검사중'].replace(',', '')) + int(stat['결과음성'].replace(',', '')), ',')
-    stat['감시중'] = table[10] # (self_quarantine)
+    stat['감시중'] = table[9] # (self_quarantine)
     stat['감시해제'] = table[11]
-    stat['자가격리자'] = table[9] # format(int(stat['감시중'].replace(',', '')) + int(stat['감시해제'].replace(',', '')), ',')
+    stat['자가격리자'] = table[10] # format(int(stat['감시중'].replace(',', '')) + int(stat['감시해제'].replace(',', '')), ',')
 
 
     # before : gwangju(infected=13, quarantine=9, self_quarantine=1, care=3)
@@ -311,8 +312,8 @@ def jeonnam():
     
     stat['지역'] = '전라남도'
     stat['확진자'] = table[1].text.replace(',','')
-    stat['퇴원'] = format(1,',')  
-    stat['격리자'] = format(int(stat['확진자'].replace(",", "")) - int(stat['퇴원'].replace(",", "")), ',')
+    stat['퇴원'] = format(2,',')  
+    stat['격리자'] = format(1,',') #format(int(stat['확진자'].replace(",", "")) - int(stat['퇴원'].replace(",", "")), ',')
     stat['검사중'] = table[4].text.replace(',','')
     stat['결과음성'] = table[2].text.replace(',','')
     stat['감시중'] = table[5].text.replace(',','')
@@ -344,33 +345,37 @@ def ulsan():
     stat['의심환자'] = format(int(stat['결과음성'].replace(',', '')) + int(stat['검사중'].replace(',', '')), ',')
     
     print("pass : ", stat['지역'])
-    return stat
+    return
 
 def incheon():
     res = requests.get('https://www.incheon.go.kr/health/HE020409')
     soup = BeautifulSoup(res.content, 'html.parser')
     
-    table_init = soup.find_all('tbody')[1] # 확진자, 검사중, 결과음성
-    table = ' '.join(table_init.text.replace("\n", " ").split()).split(' ')
-#    table2 = soup.find('div', class_="list3").find_all('dd') # 감시중, 감시해제 (총합 : 자가격리자)
+    table= soup.find('div', class_="c_left c-box").find_all('li') # 확진자, 검사중, 결과음성
+    
+    table2 = soup.find('div', class_="corona-board2").find_all('dd') # 감시중, 감시해제 (총합 : 자가격리자)
 
     stat = copy.copy(form)
     
     stat['지역'] = '인천'
-    stat['확진자'] = table[1]
-    stat['격리자'] = format(int(table[1].replace(',','')), ',')
+    stat['확진자'] = table[0]
+    #stat['격리자'] = table[1]
+    stat['격리자'] = table[1]
+    stat['사망'] = table[3]
     #stat['퇴원'] = format(2, ',')
-#    stat['퇴원'] = table[2].text
-#    stat['감시중'] = table2[0].text[:-1]
-#    stat['감시해제'] = table2[1].text[:-1]
+    stat['퇴원'] = table[1]
+    stat['감시중'] = table2[7]
+    stat['감시해제'] = table2[8]
+    stat['자가격리자'] = table2[6]
 #    stat['자가격리자'] = format(int(stat['감시중'].replace(',', '')) + int(stat['감시해제'].replace(',', '')), ',')
-    stat['결과음성'] = table[5]
-    stat['검사중'] = format(int(table[3].replace(',', '')) + int(table[4].replace(',', '')), ',')
-    stat['의심환자'] = format(int(stat['검사중'].replace(',', '')) + int(stat['결과음성'].replace(',', '')), ',')    
+    stat['결과음성'] = table2[5]
+    stat['검사중'] = table2[4]
+    stat['의심환자'] = table2[3]    
 #
     print("pass : ", stat['지역'])
 #    return stat
     return stat
+
 
 def jeju():
     headers = {'Referer': 'https://www.jeju.go.kr/index.htm'}
