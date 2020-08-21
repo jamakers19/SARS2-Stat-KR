@@ -1,7 +1,7 @@
 import requests, copy, re
 from bs4 import BeautifulSoup
 from urllib.request import urlopen
-from util.from import form
+from util.form import form
 
 dir_name = "util"
 user_agent = 'Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; rv:11.0) like Gecko'

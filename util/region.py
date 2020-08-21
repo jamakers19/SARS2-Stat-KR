@@ -281,17 +281,16 @@ def gwangju():
     return stat
 
 def jeonbuk():
-    
-    res = requests.get('http://www.jeonbuk.go.kr/index.jeonbuk')
+    res = requests.get('https://www.jeonbuk.go.kr/board/list.jeonbuk?boardId=BBS_0000105&menuCd=DOM_000000110001000000&contentsSid=1219&cpath=')
     soup = BeautifulSoup(res.content, 'html.parser')
-    table = soup.find('ul', class_="tb_ul").find("ul").find_all('font')#.find_all('td')
-
+    temp = soup.find('div', 'nationwide')
+    table = re.findall(u"<strong>(.*?)명</strong>",str(temp))
     stat = copy.copy(form)
     
     stat['지역'] = '전라북도'
-    stat['확진자'] = table[0].text
-    stat['격리자'] = table[1].text
-    stat['퇴원'] = table[2].text
+    stat['확진자'] = table[0]
+    stat['격리자'] = table[1]
+    stat['퇴원'] = table[2]
     #stat['자가격리자'] = table[3].text
 #    stat['감시해제'] = table[3]
 #    stat['감시중'] = table[4]
