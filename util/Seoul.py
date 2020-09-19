@@ -1,10 +1,10 @@
 import requests, copy
 from bs4 import BeautifulSoup
-#from selenium import webdriver
+from selenium import webdriver
 from util.form import form
 import platform, json, re
 from time import sleep
-
+import time
 dir_name = "util"
 
 user_agent = 'Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; rv:11.0) like Gecko'
@@ -37,81 +37,95 @@ class Seoul():
             }
 
     def gangnam_gu(self):
-        res = requests.get('http://www.gangnam.go.kr/index.htm', headers=headers)
-        data = BeautifulSoup(res.content, 'html.parser')
-        table = data.find_all('script')
+        driver = webdriver.Chrome('C:/Users/Choi yeojun/OneDrive/문서/GitHub/SARS2-Stat-KR/util/chromedriver.exe')
+        driver.implicitly_wait(3)
+        driver.get('http://www.gangnam.go.kr/index.htm')
+        time.sleep(10)
+        soup = BeautifulSoup(driver.page_source, 'lxml')
+        table = soup.find('div', class_='confirm_info').find_all('strong')
         
-        #confirmed = int(table[4].text.split('"counter8", ')[1].split(')')[0].replace(',',''))
-        #self.db['확진자'] += confirmed
-        self.db['확진자'] += int(soup.find('li', 'span').find('counter8').text.replace(",","")) # 강남 확진자
-        # 자가격리  |  능동감시
-        self.db['자가격리자'] += int(soup.find('li', 'span').find('counter9').text.replace(",","")) # 강남 자가격리자
-        #self.db['감시중'] += int(table[2].text.replace(",","")) # 강남 능동감시자
+        confirmed = int(str(table[0].text.replace(",","")))
+        self.db['확진자'] += confirmed
+        #self.db['확진자'] += int(table[0].text.replace(",","")) # 강남 확진자
+        # 자가격리  |  의심환자
+        self.db['자가격리자'] += int(str(table[1].text.replace(",",""))) # 강남 자가격리자
+        self.db['의심환자'] += int(str(table[2].text.replace(",",""))) # 강남 능동감시자
         
         print(u"# 강남구 : %d"%(confirmed))
 
     def gangdong_gu(self):
-        res = requests.get('https://www.gangdong.go.kr', headers=headers)
-        soup = BeautifulSoup(res.content, 'html.parser')
+        res = requests.get('https://www.gangdong.go.kr/site/contents/corona/', headers=headers)
+        soup = BeautifulSoup(res.content, 'lxml')
+
+        
         self.db['확진자'] += int(soup.find('li', 'red').find('strong').text.replace(",","")) # 강동 확진자
         self.db['퇴원'] += int(soup.find('li', 'green').find('strong').text.replace(",","")) # 강동 퇴원자
         self.db['자가격리자'] += int(soup.find('li', 'blue').find('strong').text.replace(",","")) # 강동 자가격리자
-
+        self.db['사망'] += int(soup.find('li', 'blue').find('strong').text.replace(",","")) # 강동 사망자
         print(u"# 강동구 : %d"%(int(soup.find('li', 'red').find('strong').text)))
 
     def gangbuk_gu(self):
-        res = requests.get('http://www.gangbuk.go.kr/intro_gb.jsp')
-        temp = BeautifulSoup(res.content, 'html.parser')
-        cookie = temp.find("script").text.split("\r\n")[1].replace("document.cookie = '", '').replace("'", "")
-        headers = {'Cookie' : cookie}
-        res = requests.get('http://www.gangbuk.go.kr/intro_gb.jsp', headers=headers)
-        table = BeautifulSoup(res.content, 'html.parser').find('ul', class_='clearfix').find_all('p', class_='text')
+        driver = webdriver.Chrome('C:/Users/Choi yeojun/OneDrive/문서/GitHub/SARS2-Stat-KR/util/chromedriver.exe')
+        driver.implicitly_wait(3)
+        driver.get('http://www.gangbuk.go.kr/intro_gb.jsp')
+        soup = BeautifulSoup(driver.page_source, 'lxml')
+        temp = soup.find('ul', class_='clearfix')
+        table = re.findall(u'<p class="text">(.*?)</p>',str(temp))
+        
 
-        self.db['확진자'] += int(table[0].text.replace(',','')) # 강북 확진자
-        self.db['자가격리자'] += int(table[1].text.replace(',','')) # 강북 자가격리자
-        self.db['퇴원'] += int(table[2].text.replace(',','')) # 강북 능동감시자
+        self.db['확진자'] += int(table[0].replace(',','')) # 강북 확진자
+        self.db['자가격리자'] += int(table[1].replace(',','')) # 강북 자가격리자
+        self.db['퇴원'] += int(table[2].replace(',','')) # 강북 능동감시자
 
-        print(u"# 강북구 : %d"%(int(table[0].text.replace(',',''))))
+        print(u"# 강북구 : %d"%(int(table[0].replace(',',''))))
 
     def gangseo_gu(self):
         res = requests.get('http://www.gangseo.seoul.kr/new_portal/index.jsp', headers=headers)
-        soup = BeautifulSoup(res.content, 'html.parser')
+        soup = BeautifulSoup(res.content, 'lxml')
         # 확진자  |  능동감시자
-        table = soup.find('table', 'table0226').find_all('tr')[1].find_all('td')
-        self.db['확진자'] += int(table[0].text.replace(",","")) # 강서 확진자
-        self.db['감시중'] += int(table[1].text.replace(",","")) # 강서 능동감시자
-        # TODO: 퇴원자 추가하기
-        print(u"# 강서구 : %d"%(int(table[0].text)))
+        table = soup.find('div', class_='covid_table').find('tbody').find('tr').get_text().split('\n')
+    
+        self.db['확진자'] += int(table[1].replace(",","")) # 강서 확진자
+        self.db['격리자'] += int(table[2].replace(",",""))
+        self.db['퇴원'] += int(table[3].replace(",",""))
+        self.db['사망'] += int(table[4].replace(",",""))
+        self.db['감시중'] += int(table[5].replace(",","")) # 강서 능동감시자
+        print(u"# 강서구 : %d"%(int(table[1])))
 
     def gwanak_gu(self):
-        res = requests.get('http://www.gwanak.go.kr/site/gwanak/main.do', headers=headers)
-        soup = BeautifulSoup(res.content, 'html.parser')
+        driver = webdriver.Chrome('C:/Users/Choi yeojun/OneDrive/문서/GitHub/SARS2-Stat-KR/util/chromedriver.exe')
+        driver.implicitly_wait(3)
+        driver.get('http://www.gwanak.go.kr/site/gwanak/main.do')
+        soup = BeautifulSoup(driver.page_source, 'lxml')
         # 확진자  |  자가격리자  |  능동감시자
         table1 = soup.find('div', 'corona_con').find_all('td')
         table2 = soup.find('div', 'corona_con').find_all('strong')
-        
-        self.db['확진자'] += int(table1[0].text[:-1].replace(",",""))
-        self.db['격리자'] += int(table1[1].text[:-1].replace(",",""))
-        self.db['퇴원'] += int(table1[2].text[:-1].replace(",",""))
-        self.db['자가격리자'] += int(table2[0].text[:-1].replace(",",""))
-        self.db['감시중'] += int(table2[1].text[:-1].replace(",",""))
+        self.db['확진자'] += int(table1[0].text.replace(",","").split("명")[0].replace("명", ""))
+        self.db['격리자'] += int(table1[1].text.replace(",","").split("명")[0].replace("명", ""))
+        self.db['퇴원'] += int(table1[2].text.replace(",","").split("명")[0].replace("명", ""))
+        self.db['자가격리자'] += int(table2[0].text.replace(",","").split("명")[0].replace("명", ""))
+        self.db['감시중'] += int(table2[1].text.replace(",","").split("명")[0].replace("명", ""))
 
-        print(u"# 관악구 : %d"%(int(table1[0].text[:-1].replace(",",""))))
+        print(u"# 관악구 : %d"%(int(table1[0].text.replace(",","").split("명")[0].replace("명", ""))))
 
     def gwangjin_gu(self):
         res = requests.get('https://www.gwangjin.go.kr/index1.html', headers=headers)
-        soup = BeautifulSoup(res.content, 'html.parser')
+        soup = BeautifulSoup(res.content, 'lxml')
         # 위기경보단계  |  확진환자  |  자가격리&능동감시자
         # 자가격리자와 능동감시자와 별개로 분류되어 있지 않으므로 자가격리자로 취급
-        table = soup.find('div', 'grey-box').find_all('strong')
-        self.db['확진자'] += int(table[1].text.replace(",",""))
-        self.db['자가격리자'] += int(table[2].text.replace(",",""))
+        table1 = soup.find('div', 'table w').find_all('th')
+        table2 = soup.find('div', 'table w').find_all('strong')
 
-        print(u"# 광진구 : %d"%(int(table[1].text.replace(",",""))))
+        self.db['확진자'] += int(table1[0].text.replace(",","").replace('확진자(', '').replace(')', ''))
+        self.db['자가격리자'] += int(table1[1].text.replace(",","").replace('자가격리(', '').replace(')', ''))
+        self.db['격리자'] += int(table2[0].text.replace(",",""))
+        self.db['퇴원'] += int(table1[0].text.replace(",","").replace('확진자(', '').replace(')', '')) - int(table2[0].text.replace(",",""))
+
+        print(u"# 광진구 : %d"%(int(table1[0].text.replace(",","").replace('확진자(','').replace(')', ''))))
 
     def guro_gu(self):
         res = requests.get('http://www.guro.go.kr/corona2.jsp', headers=headers)
-        soup = BeautifulSoup(res.content, 'html.parser')
+        soup = BeautifulSoup(res.content, 'lxml')
         # 구분  |  확진자  |  자가격리자  |  능동감시자
         table = soup.find('table', class_='table_A').find('tbody').find_all('td')
          # 확진자 수 뒤에 붙어있는 '강조' 텍스트 제거
@@ -126,7 +140,7 @@ class Seoul():
 
     def geumcheon_gu(self):
         res = requests.get('https://www.geumcheon.go.kr/', headers=headers)
-        soup = BeautifulSoup(res.content, 'html.parser')
+        soup = BeautifulSoup(res.content, 'lxml')
         # 구분  |  확진자  |  능동감시자(자가격리자)
         value1 = soup.find('li', class_='pink_line clearfix')
         table = re.findall('(.*?)명', value1.text)
@@ -144,34 +158,38 @@ class Seoul():
 
     def nowon_gu(self):
         res = requests.get('http://www.nowon.kr', headers=headers)
-        soup = BeautifulSoup(res.content, 'html.parser')
+        soup = BeautifulSoup(res.content, 'lxml')
         # 확진자  |  의심환자  |  유증상자  |  자가격리자
         # 유증상자는 별도로 집계하지 않음
         table = soup.find('tbody').find_all('td')
 
-        self.db['확진자'] += int(table[0].text[:-1].replace(' ', ''))
-        self.db['퇴원'] += int(table[1].text[:-1].replace(' ', ''))
-        self.db['격리자'] += int(table[3].text[:-1].replace(' ', ''))
-        self.db['의심환자'] += int(table[2].text[:-1].replace(' ', ''))
-        self.db['감시중'] += int(table[4].text[:-1].replace(' ', ''))
-        self.db['자가격리자'] += int(table[4].text[:-1].replace(' ', ''))
+        self.db['확진자'] += int(table[0].text[:-1].replace(' ', '').replace('\n', '').replace(',', '').split("명")[0].replace("명", ""))
+        self.db['퇴원'] += int(table[1].text[:-1].replace(' ', '').replace('\w', '').replace(',', '').split("명")[0].replace("명", ""))
+        self.db['격리자'] += int(table[3].text[:-1].replace(' ', '').replace('\n', '').replace(',', '').split("명")[0].replace("명", ""))
+        self.db['의심환자'] += int(table[2].text[:-1].replace(' ', '').replace('\n', '').replace(',', '').split("명")[0].replace("명", ""))
+        self.db['감시중'] += int(table[4].text[:-1].replace(' ', '').replace('\n', '').replace(',', '').split("명")[0].replace("명", ""))
+        self.db['자가격리자'] += int(table[4].text[:-1].replace(' ', '').replace('\n', '').replace(',', '').split("명")[0].replace("명", ""))
 
-        print(u"# 노원구 : %d"%(int(table[0].text[:-1].replace(' ', ''))))
+        print(u"# 노원구 : %d"%(int(table[0].text[:-1].replace(' ', '').replace('\n', '').replace(',', '').split("명")[0].replace("명", ""))))
 
     def dobong_gu(self):
         res = requests.get('http://www.dobong.go.kr/', headers=headers)
-        soup = BeautifulSoup(res.content, 'html.parser')
+        soup = BeautifulSoup(res.content, 'lxml')
         # 확진자  |  자가격리자  |  능동감시자
-        table = soup.find_all('em', class_='num')
-        self.db['확진자'] += int(table[0].text.replace(' ', ''))
-        self.db['자가격리자'] += int(table[1].text.replace(' ', ''))
-        self.db['감시중'] += int(table[2].text.replace(' ', ''))
-
-        print(u"# 도봉구 : %d"%(int(table[0].text.replace(' ', ''))))
+        table = soup.find('div', class_='mt10').find_all('dd')
+        self.db['확진자'] += int(table[0].text.replace(' ', '').replace(',', ''))
+        self.db['격리자'] += int(table[1].text.replace(' ', '').replace(',', ''))
+        self.db['자가격리자'] += int(table[4].text.replace(' ', '').replace(',', '')) - int(table[5].text.replace(' ', '').replace(',', ''))
+        self.db['감시중'] += int(table[4].text.replace(' ', '').replace(',', ''))
+        self.db['감시해제']+= int(table[5].text.replace(' ', '').replace(',', ''))
+        self.db['퇴원'] += int(table[2].text.replace(' ', '').replace(',', ''))
+        self.db['사망'] += int(table[3].text.replace(' ', '').replace(',', ''))
+        
+        print(u"# 도봉구 : %d"%(int(table[0].text.replace(' ', '').replace(',', ''))))
 
     def dongdaemun_gu(self):
         res = requests.get('http://www.ddm.go.kr/', headers=headers)
-        soup = BeautifulSoup(res.content, 'html.parser')
+        soup = BeautifulSoup(res.content, 'lxml')
         # 확진자  |  검사중  |  결과음성
         table = soup.find('tbody').find_all('strong')
         self.db['확진자'] += int(table[0].text.replace(' ', ''))
@@ -182,20 +200,19 @@ class Seoul():
 
     def dongjak_gu(self):
         res = requests.get('https://www.dongjak.go.kr/')#, headers=headers)
-        soup = BeautifulSoup(res.content, 'html.parser')
+        soup = BeautifulSoup(res.content, 'lxml')
         # 확진자  |  능동감시자
-        temp = soup.find('tbody')
-        table = re.findall('td>(.*?) 명</td>',str(temp))
+        table = soup.find('tbody').find_all('td')
 
-        self.db['확진자'] += int(table[0].replace(',', ''))
-        self.db['자가격리자'] += int(table[1].replace(',', ''))
-        self.db['퇴원'] += int(table[2].replace(',', ''))
-
-        print(u"# 동작구 : %d"%(int(table[0].replace(' ', ''))))
+        self.db['확진자'] += int(table[0].text.replace(',', '').replace("번", ""))
+        self.db['자가격리자'] += int(table[1].text.replace(',', '').replace("명", ""))
+        self.db['퇴원'] += int(table[2].text.replace(',', '').replace("명", ""))
+        self.db['격리자'] += int(table[0].text.replace(',', '').replace("번", "")) - int(table[2].text.replace(',', '').replace("명", ""))
+        print(u"# 동작구 : %d"%(int(table[0].text.replace(' ', '').replace("번", ""))))
 
     def mapo_gu(self):
         res = requests.get('http://www.mapo.go.kr/html/corona/intro.htm')#, headers=headers)
-        soup = BeautifulSoup(res.content, 'html.parser')
+        soup = BeautifulSoup(res.content, 'lxml')
         # 확진자  |  자가격리자  |  능동감시자
         table = soup.find('tbody').find_all('tr')[1].find_all('td')
         quarantined = int(table[0].text.replace(' ', ''))
@@ -209,7 +226,7 @@ class Seoul():
 
     def seodaemun_gu(self):
         res = requests.get('http://www.sdm.go.kr/index.do', headers=headers)
-        soup = BeautifulSoup(res.content, 'html.parser')
+        soup = BeautifulSoup(res.content, 'lxml')
         # 확진자  |  퇴원자  |  자가격리자
         table = soup.find('ul', class_='corona-popup-number-box').find_all('span') 
         self.db['확진자'] += int(table[0].text.replace(' ', ''))
@@ -220,63 +237,74 @@ class Seoul():
 
     def seocho_gu(self):
         res = requests.get('http://www.seocho.go.kr/site/seocho/main.do', headers=headers)
-        soup = BeautifulSoup(res.content, 'html.parser')
+        soup = BeautifulSoup(res.content, 'lxml')
         # 확진자  |  능동감시자
         table = soup.find('div', id='virusPopup').find('table').find('tbody').find_all('td')
-
-        treatment = int(table[0].text[:-1].replace(',',''))
-        cured = int(table[1].text[:-1].replace(',',''))
-
-        self.db['확진자'] += treatment + cured
+    
+        treatmentkr = int(table[0].text[:-1].replace(',',''))
+        treatmentfr = int(table[1].text[:-1].replace(',',''))
+        cured = int(table[2].text[:-1].replace(',',''))
+        selfquarantinekr = int(table[3].text[:-1].replace(',',''))
+        selfquarantinefr = int(table[4].text[:-1].replace(',',''))
+        self.db['확진자'] += treatmentkr + treatmentfr + cured
         self.db['퇴원'] += cured
-
-        print(u"# 서초구 : %d"%(treatment + cured))
+        self.db['자가격리자'] += selfquarantinekr + selfquarantinefr
+        print(u"# 서초구 : %d"%(treatmentkr + treatmentfr + cured))
 
     def seongdong_gu(self):
         res = requests.get('http://www.sd.go.kr/sd/intro.do', headers=headers)
-        soup = BeautifulSoup(res.content, 'html.parser')
+        soup = BeautifulSoup(res.content, 'lxml')
         temp = soup.find('ul', class_='status_list')
         table = re.findall('<em>(.*?)명</em>',str(temp))
-
+        table2 = re.findall('<span class="stat_txt">(.*?)명</span>',str(temp))
         # 확진자  |  의심환자  |  능동감시자  |  자가격리자  |  유증상자
         # 유증상자는 별도로 집계 안함
-        quarantined = int(table[0].replace(',',''))
-        cared = int(table[1].replace(',',''))
+        quarantined = int(table[0].replace(',','').replace("명", ""))
+        cared = int(table[1].replace(',','').replace("명", ""))
         confirmed = quarantined + cared
+        dead = int(table[2].replace('.','').replace("명", ""))
         self.db['확진자'] += confirmed
+        self.db['격리자'] += quarantined
+        self.db['사망'] += dead
         #self.db['의심환자'] += int(table[1].text[:-1].replace(',',''))
         self.db['퇴원'] += cared
         #self.db['자가격리자'] += int(table[3].text[:-1].replace(',',''))
-
+        self.db['자가격리자'] += int(table2[0].replace(',','').replace("명", ""))
+        self.db['감시중'] += int(table2[1].replace(',','').replace("명", ""))
         print(u"# 성동구 : %d"%(confirmed))
 
     # 성북구는 텍스트로 된 자료를 제공하지 않아 크롤링 불가
     def seongbuk_gu(self):
         res = requests.get('http://www.sb.go.kr/')
-        soup = BeautifulSoup(res.content, 'html.parser')
+        soup = BeautifulSoup(res.content, 'lxml')
         # 퇴원  |  격리자  |  자가격리 능동감시자
-        table = soup.find_all('span', class_='num')
-
-        self.db['퇴원'] += int(table[0].text.replace(',', ''))
+        
+        table = soup.find('div', class_='box1 clearfix').find_all('span', class_='num')
+        table2 = soup.find('div', class_='d-button').find_all('p')
+        self.db['퇴원'] += int(table[2].text.replace(',', ''))
         self.db['격리자'] += int(table[1].text.replace(',', ''))
-        confirmed = int(table[0].text.replace(',', '')) + int(table[1].text.replace(',', ''))
-        self.db['확진자'] += confirmed
+        self.db['확진자'] += int(table[0].text.replace(',', ''))
+        self.db['자가격리자'] += int(table2[1].text.replace(',', '').split('자가격리 ')[1].replace('\n			', ''))
         #self.db['자가격리자'] += # int(table[2].text.replace(',', ''))
-        print(u"# 성북구 : %d"%(confirmed))
+        print(u"# 성북구 : %d"%(int(table[0].text.replace(',', ''))))
 
     def songpa_gu(self):
         res = requests.get('http://www.songpa.go.kr/index.jsp', verify=True, headers=headers)
-        soup = BeautifulSoup(res.content, 'html.parser')
+        soup = BeautifulSoup(res.content, 'lxml')
         init = soup.find('tbody')
         table = re.findall('\n(.*?)명', init.text)
         confirmed = int(table[0].replace(',', ''))
         quarantined = int(table[1].replace(',', ''))
         cared = int(table[2].replace(',', ''))
+        selfquarantinekr = int(table[4][:-1].replace(',',''))
+        selfquarantinefr = int(table[5][:-1].replace(',',''))
+        
         # 확진자  |  퇴원(확진해제자)  |  자가격리  
         
         self.db['확진자'] += confirmed
         self.db['퇴원'] += cared
-        #self.db['자가격리자'] += int(table[8][:-1].replace(',', ''))
+        self.db['격리자'] += quarantined
+        self.db['자가격리자'] += selfquarantinekr + selfquarantinefr
         #self.db['결과음성'] += 
         #self.db['검사중'] += 
         print(u"# 송파구 : %d"%(confirmed))
@@ -350,32 +378,41 @@ class Seoul():
         print(u"# 종로구 : %d"%(int(table[0].text[:-1])))
         
     def jung_gu(self):
-        #res = requests.get('http://www.junggu.seoul.kr/', headers=headers)
-        #soup = BeautifulSoup(res.content, 'html.parser')
-        #
-        #table_init = soup.find('tbody')#, class_='point_txt')#.find_all('span')
-        #li = table.find_all('td')[1:11]
-        #
-        #table = ' '.join(table_init.text.replace("\n"," ").split()).split(' ')
-        self.db['확진자'] += 5 #int(table[0])
-        self.db['자가격리자'] += 265 # int(table[1])
-        self.db['감시중'] +=  0 # int(table[2])
+        res = requests.get('http://www.junggu.seoul.kr/', headers=headers)
+        soup = BeautifulSoup(res.content, 'html.parser')
+        
+        table = soup.find('div', class_='sub_table1 popup_table').find('table').find('tbody').find_all('td')
+    
+        treatment = int(table[0].text.replace(',',''))
+        cured = int(table[1].text.replace(',',''))
+        selfquarantinekr = int(table[2].text.replace(',',''))
+        selfquarantinefr = int(table[3].text.replace(',',''))
+        self.db['확진자'] += treatment + cured
+        self.db['자가격리자'] += selfquarantinekr + selfquarantinefr
+        self.db['격리자'] +=  treatment
+        self.db['퇴원'] += cured
 
-        print(u"# 중구 : %d"%(5))
+        print(u"# 중구 : %d"%(treatment + cured))
     
     def jungnang_gu(self):
-        res = requests.get('https://www.jungnang.go.kr/intro.jsp', headers=headers)
-        soup = BeautifulSoup(res.content, 'html.parser')
-    
-        table = soup.find('dl', class_='intro_tbl jn_intro_tbl').find_all('span')
+        driver = webdriver.Chrome('C:/Users/Choi yeojun/OneDrive/문서/GitHub/SARS2-Stat-KR/util/chromedriver.exe')
+        driver.implicitly_wait(3)
+        driver.get('https://www.jungnang.go.kr/intro.jsp')
+        soup = BeautifulSoup(driver.page_source, 'lxml')
+        temp = soup.find('b', 'num1')
+        table = soup.find('ul', 'num_board').find('li').find('b', 'num1')
+        table2 = re.findall('<span class="fc_blue">((.*?))</span>', temp.text)
+        print(table)
+        print(table2)
+        
         # 전국  |  북구  |  자가격리
-        self.db['확진자'] += int(table[0].text.replace(',', ''))
-        self.db['퇴원'] += int(table[1].text.replace(',', ''))
-        self.db['감시중'] += int(table[2].text.replace(',', ''))
-        self.db['감시해제'] += int(table[3].text.replace(',', ''))
-        # self.db['자가격리자'] += int(    ) # 
+        self.db['확진자'] += int(table[0].replace(',', '').split(' '))
+        self.db['격리자'] += int(table[0].replace(',', '').split(' ')) - int(table2[0].replace(',', ''))
+        self.db['퇴원'] += int(table2[0].replace(',', ''))
+        self.db['자가격리자'] += int(table[1].replace(',', ''))
+        self.db['의심환자'] += int(table[2].replace(',', ''))
 
-        print(u"# 중랑구 : %d"%(int(table[0].text.replace(',', ''))))
+        print(u"# 중랑구 : %d"%(int(table[0].replace(',', ''))))
         
     def collect(self):
         res = requests.get('http://www.seoul.go.kr/coronaV/coronaStatus.do?menu_code=01', headers=headers)
