@@ -39,7 +39,6 @@ pyparsing==2.4.6
 python-dateutil==2.8.1
 query-string
 queuelib==1.5.0
-request==2.24.0
 requests==2.23.0
 Scrapy==1.8.0
 selenium==3.141.0
