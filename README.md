@@ -1,5 +1,5 @@
 
-## 중공 바이러스[CCP Virus]()(SARS-CoV-2) 대한민국 확진자 통계
+## SARS-CoV-2 대한민국 확진자 통계
 ### Confirmed cases of CCP-Virus in Korea
 2020-09-19 19:43:17 KST
 
