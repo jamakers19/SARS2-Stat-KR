@@ -1,6 +1,6 @@
 
 ## SARS-CoV-2 대한민국 확진자 통계
-### Confirmed cases of CCP-Virus in Korea
+### Confirmed cases of CoV in Korea
 2020-09-19 19:43:17 KST
 
 각 **시/도/구/군청** 사이트에 공개되어 있는 **공식 자료**를 수합하여 만든 통계입니다.
